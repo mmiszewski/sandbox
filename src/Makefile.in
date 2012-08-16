@@ -1,0 +1,72 @@
+# $Id: Makefile.in,v 1.47.2.2 2007-04-28 20:02:22 porridge Exp $
+
+prefix = @prefix@
+datarootdir = @datarootdir@
+datadir = @datadir@
+mandir = @mandir@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libexecdir = @libexecdir@
+sysconfdir = @sysconfdir@
+
+CC = @CC@ 
+CFLAGS = -I.. -I../lib @CFLAGS@ -DDATADIR=\"${datadir}/ekg\" -DSYSCONFDIR=\"${sysconfdir}\"
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+
+MAKE = @MAKE@
+AR = @AR@
+INSTALL = @INSTALL@
+STRIP = @STRIP@
+
+OBJS = stuff.o commands.o events.o themes.o vars.o dynstuff.o userlist.o ekg.o xmalloc.o mail.o msgqueue.o emoticons.o configfile.o @OBJS@ ui-batch.o ui-none.o log.o
+SRCS = $(OBJS:.o=.c) comptime.c
+
+#
+
+all:	dep ekg @ioctld@
+
+ekg:	$(OBJS) comptime.c @libgadu_a@
+	$(CC) $(CFLAGS) -c -o comptime.o comptime.c
+	$(CC) $(CFLAGS) -o ekg $(OBJS) comptime.o -L../lib @lgadu@ @libgadu_a@ $(LDFLAGS) $(LIBS)
+
+ioctld:	ioctld.c
+	$(CC) $(CFLAGS) ioctld.c -o ioctld $(LIBS) @IOCTLD_OBJS@
+
+dep:	.depend
+
+.depend:	$(SRCS)
+	$(CC) -MM $(CFLAGS) $(SRCS) 1> .depend
+
+#
+
+install: all install-ekg @install_ioctld@
+
+install-ekg:	@strip_ekg@
+	$(INSTALL) -d $(DESTDIR)$(bindir)
+	$(INSTALL) -m 755 ekg $(DESTDIR)$(bindir)
+
+install-ioctld:	@strip_ioctld@
+	$(INSTALL) -d $(DESTDIR)$(libexecdir)
+	$(INSTALL) -m 755 ioctld $(DESTDIR)$(libexecdir)
+
+strip-ekg:
+	$(STRIP) ekg
+
+strip-ioctld:
+	$(STRIP) ioctld
+
+#
+
+clean:
+	rm -f *.o ekg ioctld search core .depend
+
+distclean:	clean
+	rm -f *~ Makefile
+
+#
+
+ifneq ($(wildcard .depend),)
+include .depend
+endif
+
